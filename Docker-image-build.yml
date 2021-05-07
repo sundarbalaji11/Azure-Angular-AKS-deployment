@@ -1,0 +1,31 @@
+trigger:
+- aks
+
+pool:
+  vmImage: 'Ubuntu-18.04'
+
+variables:
+  imageName: 'mph-angular-app'
+  dockerRegistryServiceConnection: 'aks-acr-devops-connection-balaji'
+  clusterName: 'mph-kube-cluster2'
+  namespace: 'angular-namespace'
+  imagePullSecret: 'mph-app-pull-secret'
+  containerRegistry: 'BalajiContainerRegistry.azurecr.io'
+  imageRepository: 'mph-angular-app'
+
+stages:
+- stage: Build
+  displayName: Build stage
+  jobs:  
+  - job: Build
+    displayName: Build job
+    steps:
+    - task: Docker@2
+      displayName: Build and push image for mph app
+      inputs:
+        repository: $(imageName)
+        command: buildAndPush
+        dockerfile: '**/WebApplication3/ClientApp/Dockerfile'
+        containerRegistry: $(dockerRegistryServiceConnection)
+        tags: |
+          $(Build.SourceVersion)
