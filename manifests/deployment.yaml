@@ -16,4 +16,4 @@ spec:
         - name: mph-angular-app
           image: BalajiContainerRegistry.azurecr.io/mph-angular-app
           ports:
-          - containerPort: 5000
+          - containerPort: 80
