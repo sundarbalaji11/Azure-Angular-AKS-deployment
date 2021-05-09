@@ -1,0 +1,19 @@
+apiVersion : apps/v1
+kind: Deployment
+metadata:
+  name: mph-angular-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mph-angular-app
+  template:
+    metadata:
+      labels:
+        app: mph-angular-app
+    spec:
+      containers:
+        - name: mph-angular-app
+          image: BalajiContainerRegistry.azurecr.io/mph-angular-app
+          ports:
+          - containerPort: 5000
