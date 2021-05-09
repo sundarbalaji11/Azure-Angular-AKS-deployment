@@ -25,7 +25,7 @@ stages:
       inputs:
         repository: $(imageName)
         command: buildAndPush
-        dockerfile: '**/WebApplication3/ClientApp/Dockerfile'
+        dockerfile: '**/Dockerfile'
         containerRegistry: $(dockerRegistryServiceConnection)
         tags: |
           $(Build.SourceVersion)
