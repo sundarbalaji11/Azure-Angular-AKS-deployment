@@ -1,0 +1,80 @@
+trigger:
+- aks
+
+pool:
+  vmImage: 'Ubuntu-18.04'
+
+variables:
+  imageName: 'mph-angular-app'
+  dockerRegistryServiceConnection: 'aks-acr-devops-connection-balaji'
+  clusterName: 'mph-kube-cluster2'
+  namespace: 'angular-namespace'
+  imagePullSecret: 'mph-angular-app-pull-secret'
+  containerRegistry: 'BalajiContainerRegistry.azurecr.io'
+  imageRepository: 'mph-angular-app'
+
+stages:
+- stage: Build
+  displayName: Build stage
+  jobs:  
+  - job: Build
+    displayName: Build job
+    steps:
+    - task: Docker@2
+      displayName: Build and push image for mph app
+      inputs:
+        repository: $(imageName)
+        command: buildAndPush
+        dockerfile: '**/WebApplication3/ClientApp/Dockerfile'
+        containerRegistry: $(dockerRegistryServiceConnection)
+        tags: |
+          $(Build.SourceVersion)
+    - task: CopyFiles@2
+      inputs:
+        SourceFolder: '$(System.DefaultWorkingDirectory)'
+        Contents: '**/*.yaml'
+        TargetFolder: '$(Build.ArtifactStagingDirectory)'      
+    - task: PublishPipelineArtifact@1
+      inputs:
+        artifactName: 'manifests'
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+
+
+- stage: Deploy
+  displayName: Deploy stage
+  dependsOn: Build
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy job
+    environment: $(clusterName).angular-namespace
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              artifactName: 'manifests'
+              downloadPath: '$(System.ArtifactsDirectory)'
+
+          - task: KubernetesManifest@0
+            displayName: Create imagePullSecret
+            inputs:
+              action: createSecret
+              secretName: $(imagePullSecret)
+              namespace: $(namespace)
+              dockerRegistryEndpoint: $(dockerRegistryServiceConnection)
+              kubernetesServiceConnection: $(clusterName)
+              
+          - task: KubernetesManifest@0
+            displayName: Deploy to Kubernetes cluster
+            inputs:
+              action: deploy
+              namespace: $(namespace)
+              manifests: |
+                $(System.ArtifactsDirectory)/**/deployment.yaml
+                $(System.ArtifactsDirectory)/**/service.yaml
+              imagePullSecrets: |
+                $(imagePullSecret)
+              containers: |
+                $(containerRegistry)/$(imageRepository):$(Build.SourceVersion)
+              kubernetesServiceConnection: $(clusterName)
